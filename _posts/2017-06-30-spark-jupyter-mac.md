@@ -4,6 +4,7 @@ title:  "Spark with Jupyter on MacOS"
 date:   2017-06-30
 tags: spark
 excerpt: Spark, Scala, PySpark, Jupyter notebook
+comments: true
 ---
 In this post, I will outline the steps to set up Spark on a Mac and have it run on Jupyter notebook with both Scala and Python.
 
@@ -136,7 +137,7 @@ In Jupyter notebook home, start a 'Python 2' notebook.
 
 ![missing image](../images/spark_jupyter_mac/jupyter_pyspark.png)
 
-#### Scala:
+####Scala:
 
 In Jupyter notebook home, start a 'Spark - Scala' notebook.
 
