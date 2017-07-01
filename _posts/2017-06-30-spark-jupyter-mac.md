@@ -99,7 +99,7 @@ count: Int = 78697
 ```
 Ok. Enough of Spark shell. Now onto Jupyter notebook. 
 
-###Step V: Apache Toree
+### Step V: Apache Toree
 
 
 Spark shell is all very good. But it does not give you the flexibility of trying out your code in Jupyter notebook. In order to run Spark (Scala or PySpark) code in Jupyter, we will need to install [Apache Toree](https://github.com/apache/incubator-toree). 
@@ -126,17 +126,17 @@ One last thing... install py4j. Package is missing in conda, so I went ahead and
 pip install py4j
 ```
 
-###Step VI: Test it out!
+### Step VI: Test it out!
 
 In Jupyter Notebook, try out below. 
 
-####PySpark:
+#### PySpark:
 
 In Jupyter notebook home, start a 'Python 2' notebook. 
 
 ![missing image](../images/spark_jupyter_mac/jupyter_pyspark.png)
 
-####Scala:
+#### Scala:
 
 In Jupyter notebook home, start a 'Spark - Scala' notebook.
 
