@@ -137,7 +137,7 @@ In Jupyter notebook home, start a 'Python 2' notebook.
 
 ![missing image](../images/spark_jupyter_mac/jupyter_pyspark.png)
 
-####Scala:
+#### Scala:
 
 In Jupyter notebook home, start a 'Spark - Scala' notebook.
 
