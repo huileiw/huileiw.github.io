@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html class="ocks-org do-not-copy">
+<meta charset="utf-8">
+<title>Recipe Ingredients Co-occurrence</title>
+<!---<link href = "css/style.css" type = "text/css" rel = "stypesheet"/>-->
+<style>
+@import url(./css/style.css?aea6f0a);
+.background {
+  fill: #eee;
+}
+line {
+  stroke: #fff;
+}
+text.active {
+  fill: red;
+}
+</style>
+<script src="//d3js.org/d3.v2.min.js" charset="utf-8"></script>
+
+<!-- <header>
+  <aside>January 27, 2017</aside>
+  <a href="../" rel="author">Mining Recipes</a>
+</header> -->
+
+<h1><i>Recipe Ingredients</i> Co-occurrence</h1>
+
+<aside style="margin-top:80px;">
+<p>Order: <select id="order">
+  <option value="name">by Name</option>
+  <option value="count">by PMI</option>
+  <option value="group">by Cluster</option>
+</select>
+
+<p>This matrix diagram visualizes food ingredients co-occurrences from recipes scraped from <i><a href="http://allrecipes.com/">allrecipes.com</a></i>.
+
+<p>Each colored cell represents two ingredients that were used in the same recipe; darker cells indicate ingredients that co-occurred more frequently. Pointwise mutual information instead of frequency count is used to measure ingredients co-occurrences. 
+
+<p>Ingredients are clustered using a community detection algorithm. This algorithm operates on a network graph of ingredients with edge weights representing the association between them. 
+
+<p>Built with <a href="http://d3js.org/">d3.js</a>.
+</aside>
+
+<script>
+var margin = {top: 80, right: 0, bottom: 10, left: 80},
+    width = 720,
+    height = 720;
+var x = d3.scale.ordinal().rangeBands([0, width]),
+    z = d3.scale.linear().domain([0, 4]).clamp(true),
+    c = d3.scale.category10().domain(d3.range(10));
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("margin-left", -margin.left + "px")
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+d3.json("./data/ingredients.json?nocache=123", function(miserables) {
+  var matrix = [],
+      nodes = miserables.nodes,
+      n = nodes.length;
+  // Compute index per node.
+  nodes.forEach(function(node, i) {
+    node.index = i;
+    node.count = 0;
+    matrix[i] = d3.range(n).map(function(j) { return {x: j, y: i, z: 0}; });
+  });
+  // Convert links to matrix; count character occurrences.
+  miserables.links.forEach(function(link) {
+    matrix[link.source][link.target].z += link.value;
+    matrix[link.target][link.source].z += link.value;
+    matrix[link.source][link.source].z += link.value;
+    matrix[link.target][link.target].z += link.value;
+    nodes[link.source].count += link.value;
+    nodes[link.target].count += link.value;
+  });
+  // Precompute the orders.
+  var orders = {
+    name: d3.range(n).sort(function(a, b) { return d3.ascending(nodes[a].name, nodes[b].name); }),
+    count: d3.range(n).sort(function(a, b) { return nodes[b].count - nodes[a].count; }),
+    group: d3.range(n).sort(function(a, b) { return nodes[b].group - nodes[a].group; })
+  };
+  // The default sort order.
+  x.domain(orders.name);
+  svg.append("rect")
+      .attr("class", "background")
+      .attr("width", width)
+      .attr("height", height);
+  var row = svg.selectAll(".row")
+      .data(matrix)
+    .enter().append("g")
+      .attr("class", "row")
+      .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+      .each(row);
+  row.append("line")
+      .attr("x2", width);
+  row.append("text")
+      .attr("x", -6)
+      .attr("y", x.rangeBand() / 2)
+      .attr("dy", ".32em")
+      .attr("text-anchor", "end")
+      .text(function(d, i) { return nodes[i].name; });
+  var column = svg.selectAll(".column")
+      .data(matrix)
+    .enter().append("g")
+      .attr("class", "column")
+      .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+  column.append("line")
+      .attr("x1", -width);
+  column.append("text")
+      .attr("x", 6)
+      .attr("y", x.rangeBand() / 2)
+      .attr("dy", ".32em")
+      .attr("text-anchor", "start")
+      .text(function(d, i) { return nodes[i].name; });
+  function row(row) {
+    var cell = d3.select(this).selectAll(".cell")
+        .data(row.filter(function(d) { return d.z; }))
+      .enter().append("rect")
+        .attr("class", "cell")
+        .attr("x", function(d) { return x(d.x); })
+        .attr("width", x.rangeBand())
+        .attr("height", x.rangeBand())
+        .style("fill-opacity", function(d) { return z(d.z); })
+        .style("fill", function(d) { return nodes[d.x].group == nodes[d.y].group ? c(nodes[d.x].group) : null; })
+        .on("mouseover", mouseover)
+        .on("mouseout", mouseout);
+  }
+  function mouseover(p) {
+    d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
+    d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
+  }
+  function mouseout() {
+    d3.selectAll("text").classed("active", false);
+  }
+  d3.select("#order").on("change", function() {
+    clearTimeout(timeout);
+    order(this.value);
+  });
+  function order(value) {
+    x.domain(orders[value]);
+    var t = svg.transition().duration(2500);
+    t.selectAll(".row")
+        .delay(function(d, i) { return x(i) * 4; })
+        .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+      .selectAll(".cell")
+        .delay(function(d) { return x(d.x) * 4; })
+        .attr("x", function(d) { return x(d.x); });
+    t.selectAll(".column")
+        .delay(function(d, i) { return x(i) * 4; })
+        .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+  }
+  var timeout = setTimeout(function() {
+    order("group");
+    d3.select("#order").property("selectedIndex", 2).node().focus();
+  }, 5000);
+});
+</script>
+
+<p class="attribution">Source: <a href="http://www-cs-staff.stanford.edu/~uno/sgb.html">The Stanford GraphBase</a>.
+
+<p>Think of ingredients as individuals that form a network. Their association is measured using a <i><a hred="https://en.wikipedia.org/wiki/Graph_theory">network graph</a></i>. A network can be represented by an <i><a href="http://en.wikipedia.org/wiki/Adjacency_matrix">adjacency matrix</a></i>, where each cell <i>ij</i> represents an edge from vertex <i>i</i> to vertex <i>j</i>. Here, vertices represent ingredients, while edges represent co-occurrence in a recipe.
+
+<p><i><a href = "https://en.wikipedia.org/wiki/Pointwise_mutual_information">Pointwise mutual information (PMI)</a></i> captures the association within ingredient pairs. It gives the probability that two ingredients co-occur against the probability that they occur separately. PMI is used instead of frequency counts because it penalizes ingredients that have high occurrences but low co-occurrence to occurrence ratio, such as salt and pepper. 
+
+
+<!-- <footer>
+  <aside>January 27, 2017</aside>
+  <a href="../" rel="author">Mining Recipes</a>
+</footer> -->
+
+<script>
+GoogleAnalyticsObject = "ga", ga = function() { ga.q.push(arguments); }, ga.q = [], ga.l = +new Date;
+ga("create", "UA-48272912-3", "ocks.org");
+ga("send", "pageview");
+</script>
+<script async src="//www.google-analytics.com/analytics.js"></script>
